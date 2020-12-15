@@ -2,23 +2,22 @@ import tensorflow as tf
 import numpy as np
 import os
 import cv2 as cv
+from src.utils.look_img import *
 
 from src.data_process.constants import *
 from src.utils.general import iou
+import src.data_process.constants
 
-# root_path代表项目的根路径
-root_path = os.path.abspath(os.path.dirname(__file__)).split('MyMtcnn')[0]
-root_path = os.path.join(root_path, 'MyMtcnn')
-print(root_path)
+root_path = Const.root_path
 IMAGE_PATH = os.path.join(root_path, 'train')
 IMAGE_INDEX_FILE_PATH = os.path.join(root_path, 'train', 'trainImageList.txt')
 
-NEGATIVE_INDEX_FILE_PATH = os.path.join(root_path, pnet_negative_data_dir, index_file_name)
-NEGATIVE_IMAGE_DIR = os.path.join(root_path, pnet_negative_data_dir, img_file_dir)
-POSITIVE_INDEX_FILE_PATH = os.path.join(root_path, pnet_positive_data_dir, index_file_name)
-POSITIVE_IMAGE_DIR = os.path.join(root_path, pnet_positive_data_dir, img_file_dir)
-PART_INDEX_FILE_PATH = os.path.join(root_path, pnet_part_data_dir, index_file_name)
-PART_IMAGE_DIR = os.path.join(root_path, pnet_part_data_dir, img_file_dir)
+NEGATIVE_INDEX_FILE_PATH = os.path.join(root_path, Const.pnet_negative_data_dir, Const.index_file_name)
+NEGATIVE_IMAGE_DIR = os.path.join(root_path, Const.pnet_negative_data_dir, Const.img_file_dir)
+POSITIVE_INDEX_FILE_PATH = os.path.join(root_path, Const.pnet_positive_data_dir, Const.index_file_name)
+POSITIVE_IMAGE_DIR = os.path.join(root_path, Const.pnet_positive_data_dir, Const.img_file_dir)
+PART_INDEX_FILE_PATH = os.path.join(root_path, Const.pnet_part_data_dir, Const.index_file_name)
+PART_IMAGE_DIR = os.path.join(root_path, Const.pnet_part_data_dir, Const.img_file_dir)
 
 # check dir exist
 if not os.path.isdir(PART_IMAGE_DIR):
@@ -42,7 +41,7 @@ with open(IMAGE_INDEX_FILE_PATH) as fp:
     for line in fp:
         # print(line)
 
-        if total_idx > 80000: break
+        if total_idx > 30: break
         if line is None or line.isspace(): continue
 
         filename, x0, x1, y0, y1, *landmark = line.split()
@@ -51,7 +50,7 @@ with open(IMAGE_INDEX_FILE_PATH) as fp:
         x1 = int(x1)
         y1 = int(y1)
         im = cv.imread(os.path.join(IMAGE_PATH, filename))
-
+        # look_img(im)
         # 仅保留文件名
         filename = filename.split('\\')[-1]
 
@@ -82,7 +81,7 @@ with open(IMAGE_INDEX_FILE_PATH) as fp:
                 neg_idx += 1
                 total_idx += 1
                 cv.imwrite(dst_img_file_name, resize_im)
-                fp_negative_image_list_file.write('%s\n' % dst_img_file_simple_name)
+                fp_negative_image_list_file.write('%s %i\n' % (dst_img_file_simple_name, int(Const.LABEL_N)))
 
         """
         生成正例和部分例，需要写入图片数据，文件名和边框的偏移量
@@ -124,8 +123,9 @@ with open(IMAGE_INDEX_FILE_PATH) as fp:
                 total_idx += 1
                 dst_index_file_name = POSITIVE_INDEX_FILE_PATH
                 cv.imwrite(dst_img_file_name, resized_im)
-                fp_positive_image_list_file.write('%s' % dst_img_file_simple_name + ' %.4f %.4f %.4f %.4f\n' % (
-                    offset_x0, offset_y0, offset_x1, offset_y1))
+                fp_positive_image_list_file.write(
+                    '%s %i' % (dst_img_file_simple_name, int(Const.LABEL_POSI)) + ' %.4f %.4f %.4f %.4f\n' % (
+                        offset_x0, offset_y0, offset_x1, offset_y1))
             elif iou_value > 0.35:
                 # 部分
                 prefix, suffix = filename.split('.')
@@ -135,8 +135,9 @@ with open(IMAGE_INDEX_FILE_PATH) as fp:
                 total_idx += 1
                 dst_index_file_name = PART_INDEX_FILE_PATH
                 cv.imwrite(dst_img_file_name, resized_im)
-                fp_part_image_list_file.write('%s' % dst_img_file_simple_name + ' %.4f %.4f %.4f %.4f\n' % (
-                    offset_x0, offset_y0, offset_x1, offset_y1))
+                fp_part_image_list_file.write(
+                    '%s %i' % (dst_img_file_simple_name, int(Const.LABEL_PART)) + ' %.4f %.4f %.4f %.4f\n' % (
+                        offset_x0, offset_y0, offset_x1, offset_y1))
 
 fp_negative_image_list_file.close()
 fp_part_image_list_file.close()
