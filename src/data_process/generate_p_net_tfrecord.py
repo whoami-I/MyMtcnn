@@ -90,6 +90,7 @@ def generate_tfrecord(data_dir, output_dir, tfrecord_file_name):
                 roi = [bbox['leftx'], bbox['lefty'], bbox['rightx'], bbox['righty']]
                 landmark = [lm['xlefteye'], lm['ylefteye'], lm['xrighteye'], lm['yrighteye'], lm['xnose'], lm['ynose'],
                             lm['xleftmouth'], lm['yleftmouth'], lm['xrightmouth'], lm['yrightmouth']]
+                # 此处的feature要注意，有些有s，有些没有s，不能写错，否则编译出错
                 example = tf.train.Example(features=tf.train.Features(feature={
                     'image/img': _bytes_feature(instance['img']),
                     'image/shape': _int64_feature(instance['shape']),
