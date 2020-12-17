@@ -1,7 +1,13 @@
 import os
+
+
 class Const:
     index_file_name = 'imagelist.txt'
     img_file_dir = 'image'
+
+    PNET = 'PNET'
+    RNET = 'RNET'
+    ONET = 'ONET'
 
     # root_path代表项目的根路径
     root_path = os.path.abspath(os.path.dirname(__file__)).split('MyMtcnn')[0]
@@ -11,6 +17,15 @@ class Const:
     pnet_positive_data_dir = 'positive_12'
     pnet_negative_data_dir = 'negative_12'
     pnet_part_data_dir = 'part_12'
+
+    rnet_positive_data_dir = 'positive_24'
+    rnet_negative_data_dir = 'negative_24'
+    rnet_part_data_dir = 'part_24'
+
+    onet_positive_data_dir = 'positive_48'
+    onet_negative_data_dir = 'negative_48'
+    onet_part_data_dir = 'part_48'
+
 
     LABEL_N = -1
     LABEL_POSI = 1

@@ -27,6 +27,27 @@ def PNET():
     return model
 
 
+def RNET():
+    input = keras.Input([24, 24, 3])
+    x = keras.layers.Conv2D(filters=28, kernel_size=(3, 3), strides=1)(input)
+    x = tf.keras.layers.PReLU(shared_axes=[1, 2])(x)
+    x = tf.keras.layers.MaxPooling2D(pool_size=2, strides=2)(x)
+    x = tf.keras.layers.Conv2D(48, (3, 3), strides=1, padding='valid')(x)
+    x = tf.keras.layers.PReLU(shared_axes=[1, 2])(x)
+    x = tf.keras.layers.MaxPooling2D(pool_size=3, strides=2)(x)
+    x = tf.keras.layers.Conv2D(64, (2, 2), strides=1, padding='valid')(x)
+    x = tf.keras.layers.PReLU(shared_axes=[1, 2])(x)
+    x = tf.keras.layers.Permute((3, 2, 1))(x)
+    x = tf.keras.layers.Flatten()(x)
+    x = tf.keras.layers.Dense(128, activation='relu')(x)
+    classifier = tf.keras.layers.Dense(2, activation='softmax')(x)
+    offset_regress = tf.keras.layers.Dense(4)(x)
+    print(x, classifier, offset_regress)
+    model = tf.keras.models.Model([input], [classifier, offset_regress])
+    return model
+
+
+
 def classfier_loss(classfier_prob, label):
     """
     :param classfier_prob: (n,2),类似于[[不是人的概率，是人的概率],
@@ -84,4 +105,4 @@ def offset_loss(offset_probe, offset_target, label):
 
 
 if __name__ == '__main__':
-    PNET()
+    RNET()
