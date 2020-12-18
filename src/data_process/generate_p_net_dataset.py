@@ -64,7 +64,7 @@ def generate_data(net_type):
         for line in fp:
             # print(line)
 
-            if total_idx > 30: break
+            # if total_idx > 30: break
             if line is None or line.isspace(): continue
 
             filename, x0, x1, y0, y1, *landmark = line.split()
