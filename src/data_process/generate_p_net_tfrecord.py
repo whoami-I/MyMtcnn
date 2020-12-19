@@ -74,38 +74,38 @@ def generate_tfrecord(source_info, output_dir, tfrecord_file_name):
         os.makedirs(output_dir)
     with tf.io.TFRecordWriter(tfrecord_file_full_path) as tf_record_writer:
         for data_dir, index_file in source_info:
-                with open(index_file) as index_fp:
-                    for line in index_fp:
-                        if line.isspace(): continue
-                        filename, label, *info = line.split(' ')
-                        label = int(label)
-                        if label == Const.LABEL_N:
-                            # 只写入图像信息和label信息
-                            info = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            with open(index_file) as index_fp:
+                for line in index_fp:
+                    if line.isspace(): continue
+                    filename, label, *info = line.split(' ')
+                    label = int(label)
+                    if label == Const.LABEL_N:
+                        # 只写入图像信息和label信息
+                        info = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                        instance = get_example(os.path.join(data_dir, filename), label, info)
+                    elif label == Const.LABEL_POSI or label == Const.LABEL_PART:
+                        # 写入图像，偏移量和label信息
+                        info = list(map(float, info))
+                        if len(info) == 4:
+                            info.extend([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
                             instance = get_example(os.path.join(data_dir, filename), label, info)
-                        elif label == Const.LABEL_POSI or label == Const.LABEL_PART:
-                            # 写入图像，偏移量和label信息
-                            info = list(map(float, info))
-                            if len(info) == 4:
-                                info.extend([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-                                instance = get_example(os.path.join(data_dir, filename), label, info)
-                            elif len(info) == 14:
-                                instance = get_example(os.path.join(data_dir, filename), label, info)
-                        bbox = instance['offset']
-                        lm = instance['landmark']
-                        roi = [bbox['leftx'], bbox['lefty'], bbox['rightx'], bbox['righty']]
-                        landmark = [lm['xlefteye'], lm['ylefteye'], lm['xrighteye'], lm['yrighteye'], lm['xnose'],
-                                    lm['ynose'],
-                                    lm['xleftmouth'], lm['yleftmouth'], lm['xrightmouth'], lm['yrightmouth']]
-                        # 此处的feature要注意，有些有s，有些没有s，不能写错，否则编译出错
-                        example = tf.train.Example(features=tf.train.Features(feature={
-                            'image/img': _bytes_feature(instance['img']),
-                            'image/shape': _int64_feature(instance['shape']),
-                            'image/label': _int64_feature(instance['label']),
-                            'image/offset': _float_feature(roi),
-                            'image/landmark': _float_feature(landmark)
-                        }))
-                        tf_record_writer.write(example.SerializeToString())
+                        elif len(info) == 14:
+                            instance = get_example(os.path.join(data_dir, filename), label, info)
+                    bbox = instance['offset']
+                    lm = instance['landmark']
+                    roi = [bbox['leftx'], bbox['lefty'], bbox['rightx'], bbox['righty']]
+                    landmark = [lm['xlefteye'], lm['ylefteye'], lm['xrighteye'], lm['yrighteye'], lm['xnose'],
+                                lm['ynose'],
+                                lm['xleftmouth'], lm['yleftmouth'], lm['xrightmouth'], lm['yrightmouth']]
+                    # 此处的feature要注意，有些有s，有些没有s，不能写错，否则编译出错
+                    example = tf.train.Example(features=tf.train.Features(feature={
+                        'image/img': _bytes_feature(instance['img']),
+                        'image/shape': _int64_feature(instance['shape']),
+                        'image/label': _int64_feature(instance['label']),
+                        'image/offset': _float_feature(roi),
+                        'image/landmark': _float_feature(landmark)
+                    }))
+                    tf_record_writer.write(example.SerializeToString())
 
     pass
 
@@ -134,6 +134,7 @@ def decode_tfrecord(tfrecord_file):
         img_raw = tf.io.decode_raw(img_feature['image/img'], tf.uint8)
         shape = tf.cast(img_feature['image/shape'], tf.int32)
         im = tf.reshape(img_raw, shape)
+
         label = tf.cast(img_feature['image/label'], tf.int32)
         img_batch.append(im)
         label_batch.append(label)
@@ -158,19 +159,36 @@ if __name__ == '__main__':
     NET = Const.ONET
     if NET == Const.PNET:
         tfrecord = 'pnet_tfrecord'
+        img_dir = os.path.join(Const.root_path, Const.pnet_positive_data_dir, Const.img_file_dir)
+        index_file = os.path.join(Const.root_path, Const.pnet_positive_data_dir, Const.index_file_name)
+        generate_tfrecord([[img_dir, index_file],
+                           [os.path.join(Const.root_path, Const.pnet_negative_data_dir, Const.img_file_dir),
+                            os.path.join(Const.root_path, Const.pnet_negative_data_dir, Const.index_file_name)],
+                           [os.path.join(Const.root_path, Const.pnet_part_data_dir, Const.img_file_dir),
+                            os.path.join(Const.root_path, Const.pnet_part_data_dir, Const.index_file_name)]
+                           ], Const.root_path, tfrecord)
     elif NET == Const.RNET:
         tfrecord = 'rnet_tfrecord'
+        img_dir = os.path.join(Const.root_path, Const.rnet_positive_data_dir, Const.img_file_dir)
+        index_file = os.path.join(Const.root_path, Const.rnet_positive_data_dir, Const.index_file_name)
+        generate_tfrecord([[img_dir, index_file],
+                           [os.path.join(Const.root_path, Const.rnet_negative_data_dir, Const.img_file_dir),
+                            os.path.join(Const.root_path, Const.rnet_negative_data_dir, Const.index_file_name)],
+                           [os.path.join(Const.root_path, Const.rnet_part_data_dir, Const.img_file_dir),
+                            os.path.join(Const.root_path, Const.rnet_part_data_dir, Const.index_file_name)]
+                           ], Const.root_path, tfrecord)
     elif NET == Const.ONET:
         tfrecord = 'onet_tfrecord'
+        img_dir = os.path.join(Const.root_path, Const.onet_positive_data_dir, Const.img_file_dir)
+        index_file = os.path.join(Const.root_path, Const.onet_positive_data_dir, Const.index_file_name)
+        generate_tfrecord([[img_dir, index_file],
+                           [os.path.join(Const.root_path, Const.onet_negative_data_dir, Const.img_file_dir),
+                            os.path.join(Const.root_path, Const.onet_negative_data_dir, Const.index_file_name)],
+                           [os.path.join(Const.root_path, Const.onet_part_data_dir, Const.img_file_dir),
+                            os.path.join(Const.root_path, Const.onet_part_data_dir, Const.index_file_name)]
+                           ], Const.root_path, tfrecord)
     else:
         raise Exception('net must be ONET,PNET,RNET')
-
-    # img_dir = os.path.join(Const.root_path, Const.onet_positive_data_dir, Const.img_file_dir)
-    # index_file = os.path.join(Const.root_path, Const.onet_positive_data_dir, Const.index_file_name)
-    # generate_tfrecord([[img_dir, index_file],
-    #                    [os.path.join(Const.root_path, Const.onet_negative_data_dir, Const.img_file_dir),os.path.join(Const.root_path, Const.onet_negative_data_dir, Const.index_file_name)],
-    #                    [os.path.join(Const.root_path, Const.onet_part_data_dir, Const.img_file_dir),os.path.join(Const.root_path, Const.onet_part_data_dir, Const.index_file_name)]
-    #                    ], Const.root_path, tfrecord)
 
     # total = 0
     # dataset = decode_tfrecord(os.path.join(Const.root_path, tfrecord))

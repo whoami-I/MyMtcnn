@@ -171,4 +171,4 @@ def generate_data(net_type):
 
 
 if __name__ == '__main__':
-    generate_data(Const.ONET)
+    generate_data(Const.RNET)
